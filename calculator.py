@@ -41,44 +41,83 @@ To submit your homework:
 
 """
 
+from textwrap import dedent
 
-def add(*args):
-    """ Returns a STRING with the sum of the arguments """
+INSTRUCTIONS = dedent("""
+http://localhost:8080/multiply/3/5  => 15
+http://localhost:8080/add/23/42  => 65
+http://localhost:8080/subtract/23/42  => -19
+http://localhost:8080/divide/22/11  => 2
+""")
 
-    # TODO: Fill sum with the correct value, based on the
-    # args provided.
-    sum = "0"
+def add(one, two):
+    return str(int(one) + int(two))
 
-    return sum
+def subtract(one, two):
+    return str(int(one) - int(two))
 
-# TODO: Add functions for handling more arithmetic operations.
+def divide(one, two):
+    return str(int(one) / int(two))
+
+def multiply(one, two):
+    return str(int(one) * int(two))
+
 
 def resolve_path(path):
-    """
-    Should return two values: a callable and an iterable of
-    arguments.
-    """
+    supported_operations = ["add", "multiply", "subtract", "divide"]
 
-    # TODO: Provide correct values for func and args. The
-    # examples provide the correct *syntax*, but you should
-    # determine the actual values of func and args using the
-    # path.
-    func = add
-    args = ['25', '32']
+    try:
+        _, operator, first, second = path.split("/")
 
-    return func, args
+        print("first={}, second={}".format(first, second))
+
+        if operator.lower() not in supported_operations:
+            raise KeyError
+
+        args = [first, second]
+
+        return operator, args
+    except ValueError:
+        return ValueError
 
 def application(environ, start_response):
-    # TODO: Your application code from the book database
-    # work here as well! Remember that your application must
-    # invoke start_response(status, headers) and also return
-    # the body of the response in BYTE encoding.
-    #
-    # TODO (bonus): Add error handling for a user attempting
-    # to divide by zero.
-    pass
+    operators = {
+        'add': add,
+        'divide': divide,
+        'subtract': subtract,
+        'multiply': multiply
+    }
+
+    status = "200 OK"
+
+    if environ.get('REQUEST_METHOD') == "GET":
+        body = INSTRUCTIONS
+
+        try:
+            func, args = resolve_path(environ.get('PATH_INFO'))
+
+            body = operators[func](*args)
+
+            print(body)
+        except TypeError:
+            # handling for favicon.ico
+            pass
+        except KeyError:
+            # handling when operator is not add, subtract, multiple or divide
+            body = "Unsupported operator, instructions below: {}".format(INSTRUCTIONS)
+
+    elif environ.get('REQUEST_METHOD') == "POST":
+        body = "Unsupported operation."
+    else:
+        body = "This is neither a GET request nor a POST request!"
+
+    response_headers = [('Content-type', 'text/plain'),
+                        ('Content-length', str(len(body)))]
+    start_response(status, response_headers)
+    return [body.encode('utf8')]
 
 if __name__ == '__main__':
-    # TODO: Insert the same boilerplate wsgiref simple
-    # server creation that you used in the book database.
-    pass
+    from wsgiref.simple_server import make_server
+
+    srv = make_server('localhost', 8080, application)
+    srv.serve_forever()
