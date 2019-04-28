@@ -50,10 +50,7 @@ def application(environ, start_response):
 
         try:
             func, args = resolve_path(environ.get('PATH_INFO'))
-
             body = operators[func](*args)
-
-            print(body)
         except TypeError:
             # handling for favicon.ico
             pass
