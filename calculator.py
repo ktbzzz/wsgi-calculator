@@ -26,8 +26,6 @@ def resolve_path(path):
     try:
         _, operator, first, second = path.split("/")
 
-        print("first={}, second={}".format(first, second))
-
         if operator.lower() not in supported_operations:
             raise KeyError
 
